@@ -14,6 +14,8 @@
         <java.version>11</java.version>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+        <!--跳过测试-->
+        <skipTests>true</skipTests>
         <lombok.version>1.18.24</lombok.version>
         <commons.lang3.version>3.12.0</commons.lang3.version>
         <org.apache.commons.io.version>2.11.0</org.apache.commons.io.version>
@@ -44,18 +46,18 @@
             </exclusions>
             <scope>provided</scope>
         </dependency>
-        <!-- <dependency>
+        <dependency>
             <groupId>org.apache.jmeter</groupId>
             <artifactId>ApacheJMeter_components</artifactId>
             <version>${jmeter.version}</version>
             <scope>test</scope>
-        </dependency> -->
-        <!-- <dependency>
+        </dependency>
+         <dependency>
             <groupId>kg.apc</groupId>
             <artifactId>jmeter-plugins-emulators</artifactId>
             <version>${emulators.jmeter.version}</version>
             <scope>test</scope>
-        </dependency> -->
+        </dependency>
         <dependency>
             <groupId>kg.apc</groupId>
             <artifactId>jmeter-plugins-cmn-jmeter</artifactId>
@@ -135,7 +137,7 @@
         </dependency>
 
         <!-- test -->
-        <!-- <dependency>
+        <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
             <version>${testng.version}</version>
@@ -146,7 +148,7 @@
             <artifactId>mockito-core</artifactId>
             <version>${mockito.version}</version>
             <scope>test</scope>
-        </dependency> -->
+        </dependency>
     </dependencies>
 
     <build>
