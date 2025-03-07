@@ -61,7 +61,9 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
     }
 
     private void initGrpcConfigRequest() {
-        if (grpcRequestConfig == null)
+        if (grpcRequestConfig == null) {
+            log.info("初始化gRPC配置 - 主机: {}, 端口: {}, 方法: {}, TLS: {}", 
+                    getHost(), getPort(), getFullMethod(), isTls());
             grpcRequestConfig =
                     GrpcRequestConfig.builder()
                             .hostPort(getHostPort())
@@ -74,11 +76,19 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
                             .maxInboundMessageSize(getChannelMaxInboundMessageSize())
                             .maxInboundMetadataSize(getChannelMaxInboundMetadataSize())
                             .build();
+            log.debug("gRPC配置详情 - 最大入站消息大小: {}, 最大入站元数据大小: {}, 等待终止超时: {}",
+                    getChannelMaxInboundMessageSize(), 
+                    getChannelMaxInboundMetadataSize(),
+                    getChannelShutdownAwaitTime());
+        }
     }
 
     private void initGrpcClient() {
         if (clientCaller == null) {
+            log.info("创建新的gRPC客户端调用器");
             clientCaller = new ClientCaller(grpcRequestConfig);
+        } else {
+            log.debug("重用现有的gRPC客户端调用器");
         }
     }
 
@@ -148,17 +158,32 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
     }
 
     private void processGrpcRequestSampler(SampleResult sampleResult) {
-        GrpcResponse grpcResponse = clientCaller.call(getDeadline());
-        sampleResult.sampleEnd();
-        sampleResult.setDataType(SampleResult.TEXT);
-        if (grpcResponse.isSuccess()) {
-            generateSuccessResult(grpcResponse, sampleResult);
-        } else {
-            generateErrorResult(grpcResponse, sampleResult);
+        log.info("开始处理gRPC请求 - 线程: {}, 方法: {}, 主机: {}, 超时: {}", 
+                Thread.currentThread().getName(), getFullMethod(), getHostPort(), getDeadline());
+        try {
+            log.info("准备发送gRPC请求 - 请求JSON: {}, 元数据: {}, 请求头: {}",
+                    getRequestJson(), getMetadata(), sampleResult.getRequestHeaders());
+            GrpcResponse grpcResponse = clientCaller.call(getDeadline());
+            log.info("gRPC调用完成 - 响应状态: {}, 响应数据: {}, 响应头: {}",
+                    grpcResponse.isSuccess(), 
+                    grpcResponse.getGrpcMessageString(),
+                    sampleResult.getResponseHeaders());
+            sampleResult.sampleEnd();
+            sampleResult.setDataType(SampleResult.TEXT);
+            if (grpcResponse.isSuccess()) {
+                generateSuccessResult(grpcResponse, sampleResult);
+            } else {
+                generateErrorResult(grpcResponse, sampleResult);
+            }
+        } catch (Exception e) {
+            log.error("gRPC请求处理过程中发生异常 - 异常类型: {}, 消息: {}, 堆栈: {}", 
+                    e.getClass().getName(), e.getMessage(), e);
+            throw e;
         }
     }
 
     private void generateSuccessResult(GrpcResponse grpcResponse, SampleResult sampleResult) {
+        log.info("生成成功响应结果");
         sampleResult.setSuccessful(true);
         sampleResult.setResponseCodeOK();
         sampleResult.setResponseMessage(" success");
@@ -168,6 +193,19 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
 
     private void generateErrorResult(GrpcResponse grpcResponse, SampleResult sampleResult) {
         Throwable throwable = grpcResponse.getThrowable();
+        log.error("生成错误响应结果 - 异常类型: {}, 异常消息: {}, 响应头: {}", 
+                throwable.getClass().getName(), 
+                throwable.getMessage(),
+                sampleResult.getResponseHeaders());
+        if (throwable instanceof StatusRuntimeException) {
+            Status status = ((StatusRuntimeException) throwable).getStatus();
+            log.error("gRPC状态异常 - 状态码: {}, 描述: {}, 原因: {}, 响应头: {}", 
+                    status.getCode(), 
+                    status.getDescription(), 
+                    status.getCause(),
+                    sampleResult.getResponseHeaders());
+        }
+        log.error("完整异常堆栈:", throwable);
         sampleResult.setSuccessful(false);
         sampleResult.setResponseCode(" 500");
         boolean isRuntimeException = throwable instanceof StatusRuntimeException;
@@ -186,6 +224,11 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
         Status.Code code = status.getCode();
         responseMessage += code.value() + " " + code.name();
         responseData = status.getDescription();
+        if (responseData == null) {
+            responseData = responseMessage;
+            log.warn("Status description为null，使用responseMessage作为响应数据");
+        }
+        log.debug("StatusRuntimeException响应 - 状态码: {}, 描述: {}", code, responseData);
         sampleResult.setResponseMessage(responseMessage);
         sampleResult.setResponseData(responseData, "UTF-8");
     }
@@ -194,17 +237,29 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
             SampleResult sampleResult, Throwable throwable) {
         String responseMessage = " ";
         responseMessage += ExceptionUtils.getPrintExceptionToStr(throwable, 0);
+        log.error("非StatusRuntimeException异常 - 异常类型: {}, 消息: {}", 
+                 throwable.getClass().getName(), responseMessage);
         sampleResult.setResponseMessage(responseMessage);
         sampleResult.setResponseData(responseMessage, "UTF-8");
     }
 
     private void initGrpcInCurrentThread(SampleResult sampleResult) {
-        initGrpcConfigRequest();
-        initGrpcClient();
-        String grpcRequest = clientCaller.buildRequestAndMetadata(getRequestJson(), getMetadata());
-        sampleResult.setSamplerData(grpcRequest);
-        sampleResult.setRequestHeaders(clientCaller.getMetadataString());
-        sampleResult.sampleStart();
+        log.info("初始化当前线程的gRPC配置 - 线程: {}", Thread.currentThread().getName());
+        try {
+            initGrpcConfigRequest();
+            initGrpcClient();
+            log.debug("构建gRPC请求 - 请求JSON: {}, 元数据: {}", getRequestJson(), getMetadata());
+            String grpcRequest = clientCaller.buildRequestAndMetadata(getRequestJson(), getMetadata());
+            String metadataString = clientCaller.getMetadataString();
+            log.debug("gRPC请求构建完成 - 方法: {}, 元数据字符串: {}", getFullMethod(), metadataString);
+            sampleResult.setSamplerData(grpcRequest);
+            sampleResult.setRequestHeaders(metadataString);
+            sampleResult.sampleStart();
+        } catch (Exception e) {
+            log.error("初始化gRPC配置失败 - 异常类型: {}, 消息: {}", 
+                    e.getClass().getName(), e.getMessage(), e);
+            throw e;
+        }
     }
 
     /** GETTER AND SETTER */

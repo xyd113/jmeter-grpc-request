@@ -34,7 +34,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ClientCaller {
+    private static final Logger log = LoggerFactory.getLogger(ClientCaller.class);
     private Descriptors.MethodDescriptor methodDescriptor;
     private JsonFormat.TypeRegistry registry;
     private DynamicGrpcClient dynamicClient;
@@ -81,6 +85,8 @@ public class ClientCaller {
             final DescriptorProtos.FileDescriptorSet fileDescriptorSet;
 
             try {
+                log.info("testProtoFiles: "+testProtoFiles);
+                log.info("libFolder: "+libFolder);
                 fileDescriptorSet = ProtocInvoker.forConfig(testProtoFiles, libFolder).invoke();
             } catch (Exception e) {
                 shutdownNettyChannel();

@@ -40,6 +40,7 @@ public class ProtocInvoker {
      * if none is passed.
      */
     private ProtocInvoker(Path discoveryRoot, ImmutableList<Path> protocIncludePaths) {
+        logger.error("protocIncludePaths: "+protocIncludePaths);
         this.protocIncludePaths = protocIncludePaths;
         this.discoveryRoot = discoveryRoot;
     }
@@ -59,9 +60,9 @@ public class ProtocInvoker {
         }
 
         ImmutableList.Builder<Path> includePaths = ImmutableList.builder();
-
+        logger.info("libFolder: "+libFolder);
         List<String> includePathsList = getProtocIncludes(libFolder);
-
+        logger.info("includePathsList: "+includePathsList);
         for (String includePathString : includePathsList) {
             Path path = Paths.get(includePathString);
             if (!path.isAbsolute()) {
@@ -70,7 +71,7 @@ public class ProtocInvoker {
             Preconditions.checkArgument(Files.exists(path), "Invalid proto include path: " + path);
             includePaths.add(path.toAbsolutePath());
         }
-
+        logger.info("includePaths: "+includePaths);
         return new ProtocInvoker(discoveryRootPath, includePaths.build());
     }
 
@@ -216,14 +217,17 @@ public class ProtocInvoker {
         PrintStream stdoutBackup = System.out;
         PrintStream stderrBackup = System.err;
         try {
+            logger.info("entry invokeBinary");
             ByteArrayOutputStream protocStdout = new ByteArrayOutputStream();
             ByteArrayOutputStream protocStderr = new ByteArrayOutputStream();
             System.setOut(new PrintStream(protocStdout));
             System.setErr(new PrintStream(protocStderr));
+            logger.info("protocArgs: "+protocArgs);
             status = Protoc.runProtoc(protocArgs.toArray(new String[0]));
             protocInfoLogLines = protocStdout.toString().split("\n");
             protocErrorLogLines = protocStderr.toString().split("\n");
         } catch (IOException | InterruptedException e) {
+            logger.error("invokeBinary error", e);
             throw new ProtocInvocationException("Unable to execute protoc binary", e);
         } finally {
             // Restore stdout.

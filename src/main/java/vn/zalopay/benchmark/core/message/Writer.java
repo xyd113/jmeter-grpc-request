@@ -31,11 +31,12 @@ public class Writer<T extends Message> implements StreamObserver<T> {
 
     @Override
     public void onCompleted() {
-        LOGGER.debug("On completed gRPC message: {}", grpcResponse.getGrpcMessageString());
+        LOGGER.info("Writer On completed gRPC message: {}", grpcResponse.getGrpcMessageString());
     }
 
     @Override
     public void onError(Throwable throwable) {
+        LOGGER.error("Writer onError:", throwable);
         grpcResponse.setSuccess(false);
         grpcResponse.setThrowable(throwable);
     }
@@ -43,10 +44,12 @@ public class Writer<T extends Message> implements StreamObserver<T> {
     @Override
     public void onNext(T message) {
         try {
+            LOGGER.info("Writer onNext success: {}", jsonPrinter.print(message));
             grpcResponse.setSuccess(true);
             grpcResponse.storeGrpcMessage(jsonPrinter.print(message));
         } catch (InvalidProtocolBufferException e) {
             LOGGER.warn(e.getMessage());
+            LOGGER.error("Writer onNext catch:", e);
             grpcResponse.storeGrpcMessage(message.toString());
         }
     }
