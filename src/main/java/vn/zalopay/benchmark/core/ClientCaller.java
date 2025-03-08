@@ -203,7 +203,9 @@ public class ClientCaller {
             dynamicClient
                     .blockingUnaryCall(requestMessages, streamObserver, callOptions(deadline))
                     .get();
+            log.info("GrpcResponse call 正常结束");
         } catch (Exception e) {
+            log.error("GrpcResponse call 异常");
             grpcResponse.setSuccess(false);
             Throwable ex;
             if (e instanceof ExecutionException) {
