@@ -22,7 +22,7 @@
         <jmeter.version>5.5</jmeter.version>
         <netty.ssl.version>2.0.54.Final</netty.ssl.version>
         <minhhoang.protoc.version>3.21.4</minhhoang.protoc.version>
-        <grpc.version>1.38.0</grpc.version>
+        <grpc.version>1.55.1</grpc.version>
         <protobuf.version>3.17.1</protobuf.version>
         <jmeter.cmn.version>0.7</jmeter.cmn.version>
         <emulators.jmeter.version>0.4</emulators.jmeter.version>
@@ -195,6 +195,16 @@
                             <minimizeJar>true</minimizeJar>
                             <keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
                             <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
+                            <!--加入以下内容，解决打包中【WARING】合并类冲突警告-->
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer">
+
+                                </transformer>
+                                <transformer implementation=
+                                                     "org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.PaxosServer</mainClass>
+                                </transformer>
+                            </transformers>
                         </configuration>
                     </execution>
                 </executions>
