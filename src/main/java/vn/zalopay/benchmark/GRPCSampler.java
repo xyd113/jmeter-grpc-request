@@ -169,12 +169,7 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
                     grpcResponse.getGrpcMessageString());
             sampleResult.sampleEnd();
             sampleResult.setDataType(SampleResult.TEXT);
-            if (grpcResponse.isSuccess() || (!grpcResponse.getGrpcMessageString().isEmpty() && !grpcResponse.getGrpcMessageString().equals("[]"))) {
-                if(grpcResponse.isSuccess()){
-                    log.info("gRPC调用结果grpcResponse.isSuccess()=true");
-                }else{
-                    log.info("gRPC调用结果grpcResponse.getGrpcMessageString()有有效的返回数据");
-                }
+            if (grpcResponse.isSuccess()) {
                 generateSuccessResult(grpcResponse, sampleResult);
             } else {
                 generateErrorResult(grpcResponse, sampleResult);
@@ -187,7 +182,7 @@ public class GRPCSampler extends AbstractSampler implements ThreadListener, Test
     }
 
     private void generateSuccessResult(GrpcResponse grpcResponse, SampleResult sampleResult) {
-        log.debug("生成成功响应结果");
+        log.info("生成成功响应结果");
         sampleResult.setSuccessful(true);
         sampleResult.setResponseCodeOK();
         sampleResult.setResponseMessage(" success");
