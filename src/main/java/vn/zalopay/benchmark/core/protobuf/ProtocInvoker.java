@@ -40,7 +40,7 @@ public class ProtocInvoker {
      * if none is passed.
      */
     private ProtocInvoker(Path discoveryRoot, ImmutableList<Path> protocIncludePaths) {
-        logger.error("protocIncludePaths: "+protocIncludePaths);
+        logger.info("protocIncludePaths: "+protocIncludePaths);
         this.protocIncludePaths = protocIncludePaths;
         this.discoveryRoot = discoveryRoot;
     }
